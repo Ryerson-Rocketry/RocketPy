@@ -1,0 +1,72 @@
+# DUMMY MOTOR BRUH (Up to date)
+# 56 data points written for 2 variables.
+# Simulation warnings:
+#   Large angle of attack encountered (23.1°)
+#
+# Longitudinal moment of inertia (kg·m²),Rotational moment of inertia (kg·m²)
+# Event IGNITION occurred at t=0 seconds
+# Event LAUNCH occurred at t=0 seconds
+2.391,0.015
+2.391,0.015
+# Event LIFTOFF occurred at t=0.02 seconds
+2.391,0.015
+# Event BURNOUT occurred at t=0.03 seconds
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+# Event LAUNCHROD occurred at t=0.087 seconds
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+# Event SIM_WARN occurred at t=0.977 seconds: Large angle of attack encountered (23.1°)
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+# Event APOGEE occurred at t=1.477 seconds
+2.391,0.015
+# Event RECOVERY_DEVICE_DEPLOYMENT occurred at t=1.478 seconds
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+2.391,0.015
+# Event GROUND_HIT occurred at t=2.985 seconds
+# Event SIMULATION_END occurred at t=2.985 seconds
+2.391,0.015
