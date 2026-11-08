@@ -1,0 +1,72 @@
+# DUMMY (Up to date)
+# 56 data points written for 2 variables.
+# Simulation warnings:
+#   Large angle of attack encountered (18.7°)
+#
+# Longitudinal moment of inertia (kg·m²),Rotational moment of inertia (kg·m²)
+# Event IGNITION occurred at t=0 seconds
+# Event LAUNCH occurred at t=0 seconds
+2.016,0.015
+2.016,0.015
+# Event LIFTOFF occurred at t=0.02 seconds
+2.016,0.015
+# Event BURNOUT occurred at t=0.03 seconds
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+# Event LAUNCHROD occurred at t=0.084 seconds
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+# Event SIM_WARN occurred at t=1.168 seconds: Large angle of attack encountered (18.7°)
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+# Event APOGEE occurred at t=1.568 seconds
+2.016,0.015
+# Event RECOVERY_DEVICE_DEPLOYMENT occurred at t=1.569 seconds
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+2.016,0.015
+# Event GROUND_HIT occurred at t=3.275 seconds
+# Event SIMULATION_END occurred at t=3.275 seconds
+2.016,0.015

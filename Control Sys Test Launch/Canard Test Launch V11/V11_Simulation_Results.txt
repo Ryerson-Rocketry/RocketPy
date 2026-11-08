@@ -1,0 +1,45 @@
+
+==================================================
+Simulation: C:\Users\User\AppData\Local\Python\pythoncore-3.14-64\python.exe "c:/Users/User/Documents/Aerostructures/Rocketpy/Control Sys Test Launch/Canard Test Launch V11/Weather_Research_CSTestLaunchV11.py"
+==================================================
+Landing Coordinates:       42.706614, -77.189976
+Apogee Coordinates:        42.706471, -77.190112
+Apogee Elevation ASL (m):  2636.78
+Apogee Time (s):           20.89
+Landing Time (s):          182.15
+Descent Time (s):          161.26
+Impact Velocity (m/s):     -13.97
+Maximum Velocity (m/s):    280.04
+Maximum Mach:              0.830
+==================================================
+
+
+==================================================
+Simulation: Test 1
+==================================================
+Landing Coordinates:       42.706614, -77.189976
+Apogee Coordinates:        42.706471, -77.190112
+Apogee Elevation ASL (m):  2636.78
+Apogee Time (s):           20.89
+Landing Time (s):          182.15
+Descent Time (s):          161.26
+Impact Velocity (m/s):     -13.97
+Maximum Velocity (m/s):    280.04
+Maximum Mach:              0.830
+==================================================
+
+
+==================================================
+Simulation: Test 2
+==================================================
+Landing Coordinates:       42.706614, -77.189976
+Apogee Coordinates:        42.706471, -77.190112
+Apogee Elevation ASL (m):  2636.78
+Apogee Time (s):           20.89
+Landing Time (s):          182.15
+Descent Time (s):          161.26
+Impact Velocity (m/s):     -13.97
+Maximum Velocity (m/s):    280.04
+Maximum Mach:              0.830
+==================================================
+
