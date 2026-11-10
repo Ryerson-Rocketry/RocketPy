@@ -1,0 +1,15 @@
+==================================================
+Simulation: ECMWF 4 Days Before
+==================================================
+Landing Coordinates:       42.699556, -77.191337
+Apogee Coordinates:        42.709991, -77.189008
+Apogee Elevation ASL (m):  2519.66
+Apogee Time (s):           20.31
+Landing Time (s):          176.45
+Descent Time (s):          156.14
+Impact Velocity (m/s):     -13.79
+Maximum Velocity (m/s):    278.30
+Maximum Mach:              0.847
+==================================================
+
+
