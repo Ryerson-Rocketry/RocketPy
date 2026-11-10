@@ -32,7 +32,7 @@ safe_title = "".join(
 ).strip("_") or "Simulation"
 
 # CHANGE THIS FOR EACH TEST
-run = "2026-11-09T00:00"
+run = "2026-11-10T12:00"
 
 # KEEP LAUNCH TIME THE SAME
 launch = "2026-11-13T19:00"
