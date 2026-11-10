@@ -408,9 +408,8 @@ CSTL = Flight(
     heading = 35, # 30 - 40
 )
 
-# ---------------- SIMULATION RESULTS ----------------
+# Sim results
 
-# Output file in the same folder as your Python script
 results_file = folder / "V11_Simulation_Results.txt"
 
 # Flight times

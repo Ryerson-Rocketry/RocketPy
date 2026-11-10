@@ -32,12 +32,11 @@ safe_title = "".join(
 ).strip("_") or "Simulation"
 
 # CHANGE THIS FOR EACH TEST
-# HRRR forecast run
-run = "2026-11-10T06:00"
+# earliest is 43 hrs before
+run = "2026-11-12T00:00"
 
 # KEEP LAUNCH TIME THE SAME
-# Forecast target (48 hours after the model run)
-launch = "2026-11-12T06:00"
+launch = "2026-11-13T19:00"
 
 # Check HRRR forecast range
 run_dt = datetime.datetime.fromisoformat(run)

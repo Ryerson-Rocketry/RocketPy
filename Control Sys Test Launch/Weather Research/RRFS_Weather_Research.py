@@ -11,7 +11,7 @@ long = -77.19170
 elev = 268.49
 
 env = Environment(
-    date = (2026, 11, 14, 14),
+    date = (2026, 11, 13, 14),
     timezone="America/New_York",
     latitude = lat,
     longitude = long,
@@ -20,11 +20,270 @@ env = Environment(
 
 # WEATHER HERE:
 
-env.set_atmospheric_model(type = "standard_atmosphere")
-
+import requests
 
 folder = Path(__file__).resolve().parent
 
+simulation_title = input("Enter simulation title: ")
+
+safe_title = "".join(
+    c if c.isalnum() or c in "-_" else "_"
+    for c in simulation_title
+).strip("_") or "Simulation"
+
+# CHANGE THIS FOR EACH TEST
+run = "2026-11-10T12:00"
+
+# KEEP THIS FIXED FOR YOUR ACTUAL LAUNCH
+launch = "2026-11-13T19:00"
+
+# Check forecast lead time
+run_dt = datetime.datetime.fromisoformat(run)
+launch_dt = datetime.datetime.fromisoformat(launch)
+
+lead_hours = (launch_dt - run_dt).total_seconds() / 3600
+
+if run_dt.hour not in [0, 6, 12, 18]:
+    raise ValueError("Use an RRFS 00, 06, 12 or 18 UTC run")
+
+if not 0 <= lead_hours <= 84:
+    raise ValueError(
+        f"RRFS forecast lead of {lead_hours:.0f} hours "
+        "is outside the 0-84 hour range"
+    )
+
+# Atmospheric pressure levels
+levels = [1000, 925, 850, 700, 600, 500, 400, 300]
+
+variables = [
+    "surface_pressure",
+    "temperature_2m",
+    "wind_speed_10m",
+    "wind_direction_10m",
+]
+
+for level in levels:
+    variables.extend([
+        f"temperature_{level}hPa",
+        f"wind_speed_{level}hPa",
+        f"wind_direction_{level}hPa",
+        f"geopotential_height_{level}hPa",
+    ])
+
+url = "https://single-runs-api.open-meteo.com/v1/forecast"
+
+def get_weather(requested_variables):
+    response = requests.get(
+        url,
+        params={
+            "latitude": lat,
+            "longitude": long,
+            "elevation": elev,
+            "run": run,
+            "models": "ncep_rrfs_conus",
+            "forecast_days": 5,
+            "timezone": "UTC",
+            "wind_speed_unit": "ms",
+            "hourly": ",".join(requested_variables),
+        },
+        timeout=60,
+    )
+
+    if not response.ok:
+        raise RuntimeError(
+            f"RRFS API error {response.status_code}: "
+            f"{response.text[:500]}"
+        )
+
+    return response.json()["hourly"]
+
+
+print("Downloading RRFS weather...")
+
+data = get_weather(variables)
+
+if launch not in data["time"]:
+    raise ValueError(
+        "Launch time unavailable in this RRFS forecast. "
+        "Check the run date and forecast horizon."
+    )
+
+i = data["time"].index(launch)
+
+
+# wind components
+
+def components(speed, direction):
+    angle = np.radians(direction)
+
+    u = -speed * np.sin(angle)
+    v = -speed * np.cos(angle)
+
+    return u, v
+
+
+# surface weather
+
+surface_values = [
+    data["surface_pressure"][i],
+    data["temperature_2m"][i],
+    data["wind_speed_10m"][i],
+    data["wind_direction_10m"][i],
+]
+
+if any(pd.isna(x) for x in surface_values):
+    raise ValueError("Missing RRFS surface weather data")
+
+u, v = components(
+    data["wind_speed_10m"][i],
+    data["wind_direction_10m"][i],
+)
+
+rows = [[
+    elev,
+    data["surface_pressure"][i] * 100,
+    data["temperature_2m"][i] + 273.15,
+    u,
+    v,
+]]
+
+
+# pressure
+
+for level in levels:
+
+    z = data[f"geopotential_height_{level}hPa"][i]
+    t = data[f"temperature_{level}hPa"][i]
+    speed = data[f"wind_speed_{level}hPa"][i]
+    direction = data[f"wind_direction_{level}hPa"][i]
+
+    if any(pd.isna(x) for x in [z, t, speed, direction]):
+        print(f"Skipping missing {level} hPa level")
+        continue
+
+    # Convert geopotential to geometric altitude ASL
+    earth_radius = 6371000
+    height = earth_radius * z / (earth_radius - z)
+
+    if height <= elev:
+        continue
+
+    u, v = components(speed, direction)
+
+    rows.append([
+        height,
+        level * 100,
+        t + 273.15,
+        u,
+        v,
+    ])
+
+
+# weather profile
+
+weather = pd.DataFrame(
+    rows,
+    columns=[
+        "height_m_asl",
+        "pressure_pa",
+        "temperature_k",
+        "wind_u_mps",
+        "wind_v_mps",
+    ],
+).sort_values("height_m_asl").reset_index(drop=True)
+
+if len(weather) < 3:
+    raise ValueError("Insufficient RRFS atmospheric levels")
+
+
+# extra data
+
+try:
+    extra = get_weather([
+        "wind_speed_80m",
+        "wind_direction_80m",
+    ])
+
+    j = extra["time"].index(launch)
+
+    speed = extra["wind_speed_80m"][j]
+    direction = extra["wind_direction_80m"][j]
+
+    if not pd.isna(speed) and not pd.isna(direction):
+
+        height = elev + 80
+        u, v = components(speed, direction)
+
+        pressure = np.interp(
+            height,
+            weather["height_m_asl"],
+            weather["pressure_pa"],
+        )
+
+        temperature = np.interp(
+            height,
+            weather["height_m_asl"],
+            weather["temperature_k"],
+        )
+
+        weather.loc[len(weather)] = [
+            height,
+            pressure,
+            temperature,
+            u,
+            v,
+        ]
+
+        print("Added 80 m wind data")
+
+except (requests.RequestException, RuntimeError,
+        KeyError, ValueError, TypeError) as e:
+    print(f"80 m wind unavailable: {e}")
+
+
+weather = weather.sort_values(
+    "height_m_asl"
+).reset_index(drop=True)
+
+
+# save file
+
+weather_file = folder / f"{safe_title}.csv"
+
+weather.to_csv(weather_file, index=False)
+
+print("\nRRFS weather saved!")
+print(f"Location: {weather_file.resolve()}")
+print(f"File exists: {weather_file.exists()}")
+
+
+# load into sim
+
+env.set_atmospheric_model(
+    type="custom_atmosphere",
+
+    pressure=weather[
+        ["height_m_asl", "pressure_pa"]
+    ].to_numpy(),
+
+    temperature=weather[
+        ["height_m_asl", "temperature_k"]
+    ].to_numpy(),
+
+    wind_u=weather[
+        ["height_m_asl", "wind_u_mps"]
+    ].to_numpy(),
+
+    wind_v=weather[
+        ["height_m_asl", "wind_v_mps"]
+    ].to_numpy(),
+)
+
+print("\nRRFS weather loaded into RocketPy!")
+print(f"Forecast run: {run} UTC")
+print(f"Launch time: {launch} UTC")
+print(f"Forecast lead: {lead_hours:.0f} hours")
+print(f"Atmospheric levels: {len(weather)}")
 
 drag_on = pd.read_csv(
     folder / "CSTLV11_power_on_drag.csv",
