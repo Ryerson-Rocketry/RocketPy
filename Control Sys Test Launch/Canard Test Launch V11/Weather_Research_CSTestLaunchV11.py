@@ -189,6 +189,8 @@ CSTL = Flight(
     heading = 35, # 30 - 40
 )
 
+CSTL.plots.trajectory_3d()
+
 # ---------------- SIMULATION RESULTS ----------------
 
 simulation_title = input("Enter simulation title: ")

@@ -31,6 +31,9 @@ safe_title = "".join(
     for c in simulation_title
 ).strip("_") or "Simulation"
 
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
 # CHANGE THIS FOR EACH TEST
 # earliest is 43 hrs before
 run = "2026-11-12T00:00"
@@ -71,9 +74,18 @@ for level in levels:
 
 url = "https://single-runs-api.open-meteo.com/v1/forecast"
 
+session = requests.Session()
+retries = Retry(
+    total=3,
+    backoff_factor=2,
+    status_forcelist=[429, 500, 502, 503, 504],
+    allowed_methods=["GET"],
+)
+session.mount("https://", HTTPAdapter(max_retries=retries))
+
 # Request a specific archived HRRR model run
 def get_weather(requested_variables):
-    response = requests.get(
+    response = session.get(
         url,
         params={
             "latitude": lat,
@@ -86,7 +98,7 @@ def get_weather(requested_variables):
             "wind_speed_unit": "ms",
             "hourly": ",".join(requested_variables),
         },
-        timeout=60,
+        timeout=(10, 120),
     )
 
     if not response.ok:
