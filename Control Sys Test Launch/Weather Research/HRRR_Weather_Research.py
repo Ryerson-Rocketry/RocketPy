@@ -36,7 +36,7 @@ from urllib3.util.retry import Retry
 
 # CHANGE THIS FOR EACH TEST
 # earliest is 43 hrs before
-run = "2026-11-12T00:00"
+run = "2026-11-12T12:00"
 
 # KEEP LAUNCH TIME THE SAME
 launch = "2026-11-13T19:00"
