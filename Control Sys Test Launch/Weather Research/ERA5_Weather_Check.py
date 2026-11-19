@@ -45,83 +45,28 @@ launch_dt = datetime.fromisoformat(
     launch
 ).replace(tzinfo=timezone.utc)
 
-
-# CHANGE ONLY IF NEEDED
 # "latest" = newest available ERA5 data
 # "launch" = actual November 13 launch data
 
-mode = "latest"
+mode = "launch"
 
 
-# ==========================================
-# FIND LATEST AVAILABLE ERA5 DATA
-# ==========================================
-
-url = (
-    "https://cds.climate.copernicus.eu/api/"
-    "catalogue/v1/collections/"
-    "reanalysis-era5-pressure-levels"
-)
-
-print("\nChecking ERA5 availability...")
-
-response = requests.get(
-    url,
-    timeout=30
-)
-
-response.raise_for_status()
-
-metadata = response.json()
-
-latest_string = metadata[
-    "extent"
-]["temporal"]["interval"][0][1]
-
-latest_dt = datetime.fromisoformat(
-    latest_string.replace("Z", "+00:00")
-)
-
-print(f"Latest catalogue timestamp: {latest_dt}")
-
-
-# Select the newest 19:00 UTC observation
-# within the catalogue's confirmed coverage
-
-latest_day = latest_dt.date()
-
-latest_19utc = datetime(
-    latest_day.year,
-    latest_day.month,
-    latest_day.day,
-    19,
-    tzinfo=timezone.utc
-)
-
-if latest_19utc > latest_dt:
-    latest_19utc -= timedelta(days=1)
-
-selected_dt = min(
-    latest_19utc,
-    launch_dt
-)
-
+# Latest available
+# Select ERA5 observation time
 
 if mode == "launch":
-
-    if latest_dt < launch_dt:
-        raise RuntimeError(
-            "Launch-day ERA5 is not available yet. "
-            f"Latest catalogue timestamp: {latest_dt}"
-        )
-
     selected_dt = launch_dt
 
-elif mode != "latest":
-
-    raise ValueError(
-        "Mode must be 'latest' or 'launch'."
+elif mode == "latest":
+    selected_dt = datetime.now(timezone.utc) - timedelta(days=7)
+    selected_dt = selected_dt.replace(
+        hour=19, minute=0, second=0, microsecond=0
     )
+
+else:
+    raise ValueError("Mode must be 'latest' or 'launch'.")
+
+print(f"Attempting ERA5 observation: {selected_dt}")
 
 
 selected_date = selected_dt.date()
@@ -135,9 +80,7 @@ if selected_dt != launch_dt:
     )
 
 
-# ==========================================
-# DOWNLOAD ERA5 WEATHER
-# ==========================================
+# download ERA5 weather
 
 era5_file = folder / (
     f"ERA5_{selected_date}_19UTC.nc"
@@ -202,13 +145,11 @@ print(f"Location: {era5_file.resolve()}")
 print(f"File exists: {era5_file.exists()}")
 
 
-# ==========================================
-# LOAD ERA5 INTO ROCKETPY
-# ==========================================
+# load into rocketpy
 
 # Use a separate environment for the ERA5
 # observation so the V11 launch stays at
-# November 13, 2 PM New York time.
+# November 13, 2 PM New York time
 
 era5_env = Environment(
     date = (
@@ -260,9 +201,7 @@ era5_env.set_atmospheric_model(
 era5_env.set_elevation(elev)
 
 
-# ==========================================
-# CREATE WEATHER PROFILE
-# ==========================================
+# weather profile
 
 max_height = min(
     float(era5_env.max_expected_height),
@@ -300,9 +239,7 @@ weather = pd.DataFrame({
 })
 
 
-# ==========================================
-# SAVE WEATHER PROFILE
-# ==========================================
+# save
 
 weather_file = folder / (
     f"{safe_title}_ERA5_{selected_date}.csv"
@@ -318,9 +255,7 @@ print(f"Location: {weather_file.resolve()}")
 print(f"Atmospheric levels: {len(weather)}")
 
 
-# ==========================================
-# LOAD WEATHER INTO V11 ENVIRONMENT
-# ==========================================
+# load into env
 
 env.set_atmospheric_model(
     type = "custom_atmosphere",

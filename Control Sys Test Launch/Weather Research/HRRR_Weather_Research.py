@@ -308,7 +308,7 @@ power_off_drag_func = Function(
 
 V11 = Rocket(
     mass = 6.525,
-    radius = 0.127/2.0,
+    radius = 0.102/2.0,
     inertia = (2.016, 2.016, 0.015),
     power_off_drag = power_off_drag_func,
     power_on_drag = power_on_drag_func,

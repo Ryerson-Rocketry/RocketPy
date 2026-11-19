@@ -225,3 +225,37 @@ Maximum Velocity (m/s):    279.68
 Maximum Mach:              0.832
 ==================================================
 
+
+==================================================
+Simulation: ERA5 2026-11-11 19UTC - ERA5 test
+==================================================
+ERA5 Observation (UTC):     2026-11-11 19:00
+Launch Time (UTC):          2026-11-13T19:00
+Landing Coordinates:       42.706396, -77.179126
+Apogee Coordinates:        42.707222, -77.190547
+Apogee Elevation ASL (m):  2620.45
+Apogee Time (s):           20.82
+Landing Time (s):          181.78
+Descent Time (s):          160.96
+Impact Velocity (m/s):     -13.94
+Maximum Velocity (m/s):    279.79
+Maximum Mach:              0.833
+==================================================
+
+
+==================================================
+Simulation: ERA5 2026-11-13 19UTC - ERA5
+==================================================
+ERA5 Observation (UTC):     2026-11-13 19:00
+Launch Time (UTC):          2026-11-13T19:00
+Landing Coordinates:       42.700318, -77.186085
+Apogee Coordinates:        42.708330, -77.191283
+Apogee Elevation ASL (m):  2566.42
+Apogee Time (s):           20.56
+Landing Time (s):          179.80
+Descent Time (s):          159.24
+Impact Velocity (m/s):     -13.75
+Maximum Velocity (m/s):    278.58
+Maximum Mach:              0.846
+==================================================
+

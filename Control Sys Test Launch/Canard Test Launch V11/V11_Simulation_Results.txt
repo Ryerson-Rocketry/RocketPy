@@ -88,3 +88,18 @@ Maximum Velocity (m/s):    291.45
 Maximum Mach:              0.864
 ==================================================
 
+
+==================================================
+Simulation: mach test
+==================================================
+Landing Coordinates:       42.707089, -77.189537
+Apogee Coordinates:        42.706921, -77.189697
+Apogee Elevation ASL (m):  3143.13
+Apogee Time (s):           23.51
+Landing Time (s):          216.64
+Descent Time (s):          193.13
+Impact Velocity (m/s):     -13.97
+Maximum Velocity (m/s):    291.45
+Maximum Mach:              0.864
+==================================================
+
