@@ -1,9 +1,5 @@
 from rocketpy import Environment, SolidMotor, Rocket, TrapezoidalFin, Flight, Function
 
-# need launch time
-# drag curves - done
-# weather
-
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -17,9 +13,10 @@ lat = 42.70477
 long = -77.19170
 elev = 268.49
 
+launch_hour = 14  # 2 pm
 
 env = Environment(
-    date = (2026, 11, 21, 14),
+    date = (2026, 11, 21, launch_hour),
     timezone="America/New_York",
     latitude = lat,
     longitude = long,
@@ -27,7 +24,6 @@ env = Environment(
 )
 
 # WEATHER HERE:
-
 
 import requests
 from zoneinfo import ZoneInfo
@@ -42,7 +38,7 @@ safe_title = "".join(
 ).strip("_") or "Icarus_Simulation"
 
 launch_local = datetime.datetime(
-    2026, 11, 21, 14,
+    2026, 11, 21, launch_hour,
     tzinfo=ZoneInfo("America/New_York")
 )
 
@@ -610,3 +606,421 @@ FlightDataExporter(test_launch).export_kml(
     extrude=True,
     altitude_mode="relativetoground",
 )
+
+import matplotlib.pyplot as plt
+from xml.etree import ElementTree as ET
+
+# Settings
+n_simulations = 100
+rng = np.random.default_rng(42)
+
+# Uncertainty assumptions (1 standard deviation)
+wind_speed_std = 0.10       # 10%
+wind_direction_std = 10.0   # degrees
+wind_component_std = 1.0    # m/s
+inclination_std = 1.0       # degrees
+heading_std = 2.0           # degrees
+
+# Original ECMWF atmospheric profile
+heights = weather["height_m_asl"].to_numpy()
+wind_u = weather["wind_u_mps"].to_numpy()
+wind_v = weather["wind_v_mps"].to_numpy()
+
+pressure = weather[
+    ["height_m_asl", "pressure_pa"]
+].to_numpy()
+
+temperature = weather[
+    ["height_m_asl", "temperature_k"]
+].to_numpy()
+
+results_mc = []
+
+print(f"\nStarting {n_simulations} Monte Carlo simulations...")
+
+for j in range(n_simulations):
+
+    # Randomize wind speed and direction
+    speed_factor = max(
+        0.0,
+        rng.normal(1.0, wind_speed_std)
+    )
+
+    angle = np.radians(
+        rng.normal(0.0, wind_direction_std)
+    )
+
+    # Rotate horizontal wind vector
+    u_new = speed_factor * (
+        wind_u * np.cos(angle) +
+        wind_v * np.sin(angle)
+    )
+
+    v_new = speed_factor * (
+        -wind_u * np.sin(angle) +
+        wind_v * np.cos(angle)
+    )
+
+    # Add wind-component uncertainty
+    u_new += rng.normal(0, wind_component_std)
+    v_new += rng.normal(0, wind_component_std)
+
+    # Create randomized atmospheric environment
+    mc_env = Environment(
+        date=(2026, 11, 21, launch_hour),
+        timezone="America/New_York",
+        latitude=lat,
+        longitude=long,
+        elevation=elev,
+    )
+
+    mc_env.set_atmospheric_model(
+        type="custom_atmosphere",
+        pressure=pressure,
+        temperature=temperature,
+        wind_u=np.column_stack((heights, u_new)),
+        wind_v=np.column_stack((heights, v_new)),
+    )
+
+    # Randomize launch rail orientation
+    inclination_mc = rng.normal(87, inclination_std)
+    heading_mc = rng.normal(35, heading_std)
+
+    try:
+        flight_mc = Flight(
+            rocket=Icarus,
+            environment=mc_env,
+            rail_length=6.1,
+            inclination=inclination_mc,
+            heading=heading_mc,
+            max_time_step=0.02,
+        )
+
+        t = flight_mc.t_final
+
+        results_mc.append({
+            "simulation": j + 1,
+            "latitude": float(flight_mc.latitude(t)),
+            "longitude": float(flight_mc.longitude(t)),
+            "x_m": float(flight_mc.x_impact),
+            "y_m": float(flight_mc.y_impact),
+            "apogee_agl_m": float(
+                flight_mc.apogee - elev
+            ),
+            "inclination_deg": inclination_mc,
+            "heading_deg": heading_mc,
+        })
+
+    except Exception as e:
+        print(f"Simulation {j + 1} failed: {e}")
+
+    if (j + 1) % 10 == 0:
+        print(f"Completed {j + 1}/{n_simulations}")
+
+# ---------------- SAVE LANDING COORDINATES ----------------
+
+if len(results_mc) < 3:
+    raise RuntimeError("Not enough successful Monte Carlo runs")
+
+mc = pd.DataFrame(results_mc)
+
+csv_file = folder / f"{safe_title}_MC_Landings.csv"
+mc.to_csv(csv_file, index=False)
+
+# Nominal landing point
+nominal_x = float(test_launch.x_impact)
+nominal_y = float(test_launch.y_impact)
+
+# Calculate dispersion
+mean_x = mc["x_m"].mean()
+mean_y = mc["y_m"].mean()
+
+distance_from_nominal = np.hypot(
+    mc["x_m"] - nominal_x,
+    mc["y_m"] - nominal_y,
+)
+
+print("\n========== MONTE CARLO RESULTS ==========")
+print(f"Successful flights: {len(mc)}")
+print(f"Mean landing: {mc['latitude'].mean():.6f}, "
+      f"{mc['longitude'].mean():.6f}")
+print(f"Mean east offset: {mean_x:.1f} m")
+print(f"Mean north offset: {mean_y:.1f} m")
+print(f"Average distance from nominal: "
+      f"{distance_from_nominal.mean():.1f} m")
+print(f"95th percentile distance from nominal: "
+      f"{np.percentile(distance_from_nominal, 95):.1f} m")
+print(f"Maximum distance from nominal: "
+      f"{distance_from_nominal.max():.1f} m")
+print(f"Coordinates saved: {csv_file}")
+
+
+
+# ---------------- MONTE CARLO KML ----------------
+
+from scipy.spatial import cKDTree
+from xml.etree import ElementTree as ET
+
+# Landing coordinates relative to launch site (metres)
+points = mc[["x_m", "y_m"]].to_numpy()
+
+if len(points) < 3:
+    raise ValueError("At least 3 landing points required")
+
+# ---------------- FIND DENSEST LANDING AREA ----------------
+
+n_core = max(2, int(np.ceil(len(points) * 0.50)))
+
+tree = cKDTree(points)
+distances, indices = tree.query(points, k=n_core)
+
+# Centre of the most concentrated 50% of landings
+core_index = np.argmin(distances[:, -1])
+center_x, center_y = points[core_index]
+
+# Distances from the selected centre
+radial_distances = np.hypot(
+    points[:, 0] - center_x,
+    points[:, 1] - center_y
+)
+
+# Radii containing 50% and 95% of simulations
+radius_50 = np.sort(radial_distances)[
+    int(np.ceil(len(points) * 0.50)) - 1
+]
+
+radius_95 = np.sort(radial_distances)[
+    int(np.ceil(len(points) * 0.95)) - 1
+]
+
+print("\n========== LANDING DISPERSION ==========")
+print(f"Successful runs: {len(mc)}")
+print(f"50% landing radius: {radius_50:.1f} m")
+print(f"95% landing radius: {radius_95:.1f} m")
+print(f"Nominal landing: {landing_lat:.6f}, {landing_lon:.6f}")
+
+
+# ---------------- CONVERT METRES TO GPS ----------------
+
+earth_radius = 6371000.0
+
+def to_gps(x, y):
+    latitude = lat + np.degrees(y / earth_radius)
+    longitude = long + np.degrees(
+        x / (earth_radius * np.cos(np.radians(lat)))
+    )
+    return latitude, longitude
+
+
+# ---------------- CREATE KML ----------------
+
+ns = "http://www.opengis.net/kml/2.2"
+ET.register_namespace("", ns)
+
+kml = ET.Element(f"{{{ns}}}kml")
+document = ET.SubElement(kml, f"{{{ns}}}Document")
+
+ET.SubElement(
+    document, f"{{{ns}}}name"
+).text = f"Icarus Monte Carlo - {simulation_title}"
+
+
+# ---------------- ADD STYLES ----------------
+
+def add_style(style_id, color, scale=1.0):
+    style = ET.SubElement(
+        document, f"{{{ns}}}Style",
+        id=style_id
+    )
+
+    icon_style = ET.SubElement(
+        style, f"{{{ns}}}IconStyle"
+    )
+
+    ET.SubElement(
+        icon_style, f"{{{ns}}}color"
+    ).text = color
+
+    ET.SubElement(
+        icon_style, f"{{{ns}}}scale"
+    ).text = str(scale)
+
+    icon = ET.SubElement(
+        icon_style, f"{{{ns}}}Icon"
+    )
+
+    ET.SubElement(
+        icon, f"{{{ns}}}href"
+    ).text = (
+        "http://maps.google.com/mapfiles/kml/"
+        "shapes/placemark_circle.png"
+    )
+
+
+add_style("landing", "ffff0000", 0.5)   # Blue
+add_style("nominal", "ff00ff00", 1.3)   # Green
+
+
+# ---------------- CIRCLE FUNCTION ----------------
+
+def add_circle(name, radius, line_color, fill_color):
+
+    placemark = ET.SubElement(
+        document, f"{{{ns}}}Placemark"
+    )
+
+    ET.SubElement(
+        placemark, f"{{{ns}}}name"
+    ).text = name
+
+    style = ET.SubElement(
+        placemark, f"{{{ns}}}Style"
+    )
+
+    line_style = ET.SubElement(
+        style, f"{{{ns}}}LineStyle"
+    )
+
+    ET.SubElement(
+        line_style, f"{{{ns}}}color"
+    ).text = line_color
+
+    ET.SubElement(
+        line_style, f"{{{ns}}}width"
+    ).text = "3"
+
+    poly_style = ET.SubElement(
+        style, f"{{{ns}}}PolyStyle"
+    )
+
+    ET.SubElement(
+        poly_style, f"{{{ns}}}color"
+    ).text = fill_color
+
+    polygon = ET.SubElement(
+        placemark, f"{{{ns}}}Polygon"
+    )
+
+    ET.SubElement(
+        polygon, f"{{{ns}}}tessellate"
+    ).text = "1"
+
+    outer = ET.SubElement(
+        polygon, f"{{{ns}}}outerBoundaryIs"
+    )
+
+    ring = ET.SubElement(
+        outer, f"{{{ns}}}LinearRing"
+    )
+
+    coordinates = []
+
+    for angle in np.linspace(0, 2 * np.pi, 181):
+
+        x = center_x + radius * np.cos(angle)
+        y = center_y + radius * np.sin(angle)
+
+        latitude, longitude = to_gps(x, y)
+
+        coordinates.append(
+            f"{longitude:.8f},{latitude:.8f},0"
+        )
+
+    ET.SubElement(
+        ring, f"{{{ns}}}coordinates"
+    ).text = " ".join(coordinates)
+
+
+# ---------------- LANDING CIRCLES ----------------
+
+# Red outer circle: 95% of landings
+add_circle(
+    f"95% Landing Area - {radius_95:.0f} m radius",
+    radius_95,
+    "ff0000ff",  # Red outline
+    "220000ff",  # Transparent red fill
+)
+
+# Yellow inner circle: 50% of landings
+add_circle(
+    f"50% Landing Area - {radius_50:.0f} m radius",
+    radius_50,
+    "ff00ffff",  # Yellow outline
+    "4400ffff",  # Transparent yellow fill
+)
+
+
+# ---------------- ALL MONTE CARLO LANDING DOTS ----------------
+
+landings_folder = ET.SubElement(
+    document, f"{{{ns}}}Folder"
+)
+
+ET.SubElement(
+    landings_folder, f"{{{ns}}}name"
+).text = "Monte Carlo Landing Points"
+
+for _, row in mc.iterrows():
+
+    placemark = ET.SubElement(
+        landings_folder, f"{{{ns}}}Placemark"
+    )
+
+    ET.SubElement(
+        placemark, f"{{{ns}}}name"
+    ).text = f"Landing {int(row['simulation'])}"
+
+    ET.SubElement(
+        placemark, f"{{{ns}}}styleUrl"
+    ).text = "#landing"
+
+    point = ET.SubElement(
+        placemark, f"{{{ns}}}Point"
+    )
+
+    ET.SubElement(
+        point, f"{{{ns}}}coordinates"
+    ).text = (
+        f"{row['longitude']:.8f},"
+        f"{row['latitude']:.8f},0"
+    )
+
+
+# ---------------- NOMINAL LANDING DOT ----------------
+
+placemark = ET.SubElement(
+    document, f"{{{ns}}}Placemark"
+)
+
+ET.SubElement(
+    placemark, f"{{{ns}}}name"
+).text = "Nominal Landing"
+
+ET.SubElement(
+    placemark, f"{{{ns}}}styleUrl"
+).text = "#nominal"
+
+point = ET.SubElement(
+    placemark, f"{{{ns}}}Point"
+)
+
+ET.SubElement(
+    point, f"{{{ns}}}coordinates"
+).text = f"{landing_lon:.8f},{landing_lat:.8f},0"
+
+
+# ---------------- SAVE KML ----------------
+
+mc_kml_file = folder / f"{safe_title}_MC_Dispersion.kml"
+
+ET.ElementTree(kml).write(
+    mc_kml_file,
+    encoding="utf-8",
+    xml_declaration=True,
+)
+
+print(f"Monte Carlo KML saved: {mc_kml_file.resolve()}")
+
+print(f"CG at launch: {Icarus.center_of_mass(0):.4f} m")
+print(f"CP at Mach 0: {Icarus.cp_position(0):.4f} m")
+print(f"Initial stability: {Icarus.static_margin(0):.3f} cal")

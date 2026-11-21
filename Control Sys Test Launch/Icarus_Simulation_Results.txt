@@ -15,3 +15,139 @@ Landing Distance (m):  608.74
 Landing Coordinates:   42.708758, -77.186592
 ==================================================
 
+
+==================================================
+Simulation: Test Launch 10 am
+ECMWF Run (UTC):       2026-11-21T06:00
+Launch Time (UTC):     2026-11-21T15:00
+==================================================
+Apogee AGL (m):        1575.66
+Maximum Velocity (m/s): 181.39
+Maximum Mach:          0.538
+Time to Apogee (s):    18.62
+Landing Time (s):      105.44
+Descent Time (s):      86.82
+Impact Velocity (m/s): -17.63
+Landing Distance (m):  508.72
+Landing Coordinates:   42.708347, -77.187814
+==================================================
+
+
+==================================================
+Simulation: test launchh
+ECMWF Run (UTC):       2026-11-21T06:00
+Launch Time (UTC):     2026-11-21T15:00
+==================================================
+Apogee AGL (m):        1575.66
+Maximum Velocity (m/s): 181.39
+Maximum Mach:          0.538
+Time to Apogee (s):    18.62
+Landing Time (s):      105.44
+Descent Time (s):      86.82
+Impact Velocity (m/s): -17.63
+Landing Distance (m):  508.72
+Landing Coordinates:   42.708347, -77.187814
+==================================================
+
+
+==================================================
+Simulation: test 9 kg
+ECMWF Run (UTC):       2026-11-21T06:00
+Launch Time (UTC):     2026-11-21T15:00
+==================================================
+Apogee AGL (m):        1945.73
+Maximum Velocity (m/s): 215.94
+Maximum Mach:          0.640
+Time to Apogee (s):    20.09
+Landing Time (s):      135.47
+Descent Time (s):      115.39
+Impact Velocity (m/s): -16.14
+Landing Distance (m):  747.30
+Landing Coordinates:   42.710106, -77.186133
+==================================================
+
+
+==================================================
+Simulation: Monte carlo test
+ECMWF Run (UTC):       2026-11-21T06:00
+Launch Time (UTC):     2026-11-21T15:00
+==================================================
+Apogee AGL (m):        1945.73
+Maximum Velocity (m/s): 215.94
+Maximum Mach:          0.640
+Time to Apogee (s):    20.09
+Landing Time (s):      135.47
+Descent Time (s):      115.39
+Impact Velocity (m/s): -16.14
+Landing Distance (m):  747.30
+Landing Coordinates:   42.710106, -77.186133
+==================================================
+
+
+==================================================
+Simulation: monte carlo test
+ECMWF Run (UTC):       2026-11-21T06:00
+Launch Time (UTC):     2026-11-21T15:00
+==================================================
+Apogee AGL (m):        1945.73
+Maximum Velocity (m/s): 215.94
+Maximum Mach:          0.640
+Time to Apogee (s):    20.09
+Landing Time (s):      135.47
+Descent Time (s):      115.39
+Impact Velocity (m/s): -16.14
+Landing Distance (m):  747.30
+Landing Coordinates:   42.710106, -77.186133
+==================================================
+
+
+==================================================
+Simulation: 10-20 min before
+ECMWF Run (UTC):       2026-11-21T06:00
+Launch Time (UTC):     2026-11-21T19:00
+==================================================
+Apogee AGL (m):        2004.43
+Maximum Velocity (m/s): 221.35
+Maximum Mach:          0.653
+Time to Apogee (s):    20.30
+Landing Time (s):      140.12
+Descent Time (s):      119.82
+Impact Velocity (m/s): -16.10
+Landing Distance (m):  921.03
+Landing Coordinates:   42.710807, -77.183976
+==================================================
+
+
+==================================================
+Simulation: 11kg run
+ECMWF Run (UTC):       2026-11-21T06:00
+Launch Time (UTC):     2026-11-21T19:00
+==================================================
+Apogee AGL (m):        1584.08
+Maximum Velocity (m/s): 181.67
+Maximum Mach:          0.536
+Time to Apogee (s):    18.67
+Landing Time (s):      105.67
+Descent Time (s):      87.01
+Impact Velocity (m/s): -17.81
+Landing Distance (m):  633.47
+Landing Coordinates:   42.708747, -77.186145
+==================================================
+
+
+==================================================
+Simulation: 11 kg run
+ECMWF Run (UTC):       2026-11-21T06:00
+Launch Time (UTC):     2026-11-21T19:00
+==================================================
+Apogee AGL (m):        1584.08
+Maximum Velocity (m/s): 181.67
+Maximum Mach:          0.536
+Time to Apogee (s):    18.67
+Landing Time (s):      105.67
+Descent Time (s):      87.01
+Impact Velocity (m/s): -17.81
+Landing Distance (m):  633.47
+Landing Coordinates:   42.708747, -77.186145
+==================================================
+
