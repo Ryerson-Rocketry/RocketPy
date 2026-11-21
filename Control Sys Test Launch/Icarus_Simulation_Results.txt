@@ -1,0 +1,17 @@
+
+==================================================
+Simulation: Test 1
+ECMWF Run (UTC):       2026-11-20T18:00
+Launch Time (UTC):     2026-11-21T19:00
+==================================================
+Apogee AGL (m):        1585.23
+Maximum Velocity (m/s): 181.69
+Maximum Mach:          0.536
+Time to Apogee (s):    18.67
+Landing Time (s):      105.74
+Descent Time (s):      87.07
+Impact Velocity (m/s): -17.82
+Landing Distance (m):  608.74
+Landing Coordinates:   42.708758, -77.186592
+==================================================
+

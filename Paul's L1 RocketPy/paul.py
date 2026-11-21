@@ -6,8 +6,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-# from pathlib import Path
-# from rocketpy.simulation import FlightDataExporter
+from pathlib import Path
+from rocketpy.simulation import FlightDataExporter
 
 env = Environment(
     date = (2026, 7, 11, 14),
@@ -129,11 +129,11 @@ print(f"Landing coordinates: {landing_latitude:.7f}, {landing_longitude:.7f}")
 # urrgFlight.plots.all()
 
 # Export trajectory to KML
-# kml_file = "Phoenix_URRG_trajectory.kml"
+kml_file = "Phoenix_URRG_trajectory.kml"
 
-# FlightDataExporter(urrgFlight).export_kml(
-    # file_name=kml_file,
-    # extrude=True,
-    # altitude_mode="relativetoground",)
+FlightDataExporter(urrgFlight).export_kml(
+    file_name=kml_file,
+    extrude=True,
+    altitude_mode="relativetoground",)
 
 # print(f"KML saved here: {Path(kml_file).resolve()}")

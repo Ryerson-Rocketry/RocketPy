@@ -1,0 +1,3 @@
+Launch: 42.70477, -77.1917
+Landing: 42.70875819791661, -77.18659184087576
+Directions: https://www.google.com/maps/dir/?api=1&origin=42.70477,-77.1917&destination=42.70875819791661,-77.18659184087576&travelmode=walking

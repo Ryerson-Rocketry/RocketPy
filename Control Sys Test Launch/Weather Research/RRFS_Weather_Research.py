@@ -21,6 +21,331 @@ env = Environment(
 # WEATHER HERE:
 
 import requests
+from zoneinfo import ZoneInfo
+
+folder = Path(__file__).resolve().parent
+
+simulation_title = input("Enter simulation title: ")
+
+safe_title = "".join(
+    c if c.isalnum() or c in "-_" else "_"
+    for c in simulation_title
+).strip("_") or "Icarus_Simulation"
+
+launch_local = datetime.datetime(
+    2026, 11, 21, 14,
+    tzinfo=ZoneInfo("America/New_York")
+)
+
+launch_dt = launch_local.astimezone(datetime.timezone.utc)
+launch = launch_dt.strftime("%Y-%m-%dT%H:%M")
+
+model = "ecmwf_ifs025"
+
+levels = [
+    1000, 925, 850, 700,
+    600, 500, 400, 300,
+    250, 200
+]
+
+variables = [
+    "surface_pressure",
+    "temperature_2m",
+    "wind_speed_10m",
+    "wind_direction_10m",
+]
+
+for level in levels:
+    variables.extend([
+        f"temperature_{level}hPa",
+        f"wind_speed_{level}hPa",
+        f"wind_direction_{level}hPa",
+        f"geopotential_height_{level}hPa",
+    ])
+
+url = "https://single-runs-api.open-meteo.com/v1/forecast"
+
+def get_weather(run):
+    response = requests.get(
+        url,
+        params={
+            "latitude": lat,
+            "longitude": long,
+            "elevation": elev,
+            "run": run,
+            "models": model,
+            "forecast_days": 10,
+            "timezone": "UTC",
+            "wind_speed_unit": "ms",
+            "hourly": ",".join(variables),
+        },
+        timeout=60,
+    )
+
+    if not response.ok:
+        raise RuntimeError(
+            f"ECMWF API error {response.status_code}: "
+            f"{response.text[:300]}"
+        )
+
+    return response.json()["hourly"]
+
+now = datetime.datetime.now(datetime.timezone.utc)
+
+latest_cycle = now.replace(
+    hour=(now.hour // 6) * 6,
+    minute=0,
+    second=0,
+    microsecond=0,
+)
+
+data = None
+run = None
+run_dt = None
+
+print("\nSearching for latest ECMWF forecast...")
+
+for offset in range(12):
+
+    candidate = latest_cycle - datetime.timedelta(
+        hours=6 * offset
+    )
+
+    if candidate > launch_dt:
+        continue
+
+    candidate_run = candidate.strftime(
+        "%Y-%m-%dT%H:%M"
+    )
+
+    print(f"Checking ECMWF run: {candidate_run} UTC")
+
+    try:
+        candidate_data = get_weather(candidate_run)
+
+        if launch not in candidate_data["time"]:
+            continue
+
+        i = candidate_data["time"].index(launch)
+
+        required = [
+            "surface_pressure",
+            "temperature_2m",
+            "wind_speed_10m",
+            "wind_direction_10m",
+            "temperature_850hPa",
+            "wind_speed_850hPa",
+            "geopotential_height_850hPa",
+        ]
+
+        if any(
+            key not in candidate_data
+            or candidate_data[key][i] is None
+            for key in required
+        ):
+            continue
+
+        data = candidate_data
+        run = candidate_run
+        run_dt = candidate
+        break
+
+    except (requests.RequestException, RuntimeError,
+            KeyError, ValueError) as e:
+        print(f"Run unavailable: {e}")
+
+if data is None:
+    raise RuntimeError(
+        "No recent ECMWF forecast covering launch time "
+        "was found. Check API availability and launch date."
+    )
+
+lead_hours = (
+    launch_dt - run_dt
+).total_seconds() / 3600
+
+print(f"\nSelected ECMWF run: {run} UTC")
+print(f"Launch time: {launch} UTC")
+print(f"Forecast lead: {lead_hours:.0f} hours")
+
+i = data["time"].index(launch)
+
+def components(speed, direction):
+    angle = np.radians(direction)
+
+    u = -speed * np.sin(angle)
+    v = -speed * np.cos(angle)
+
+    return u, v
+
+surface_values = [
+    data["surface_pressure"][i],
+    data["temperature_2m"][i],
+    data["wind_speed_10m"][i],
+    data["wind_direction_10m"][i],
+]
+
+if any(pd.isna(x) for x in surface_values):
+    raise ValueError("Missing ECMWF surface weather data")
+
+u, v = components(
+    data["wind_speed_10m"][i],
+    data["wind_direction_10m"][i],
+)
+
+rows = [[
+    elev,
+    data["surface_pressure"][i] * 100,
+    data["temperature_2m"][i] + 273.15,
+    u,
+    v,
+]]
+
+
+for level in levels:
+
+    z = data[f"geopotential_height_{level}hPa"][i]
+    t = data[f"temperature_{level}hPa"][i]
+    speed = data[f"wind_speed_{level}hPa"][i]
+    direction = data[f"wind_direction_{level}hPa"][i]
+
+    if any(pd.isna(x) for x in [z, t, speed, direction]):
+        print(f"Skipping missing {level} hPa level")
+        continue
+
+    earth_radius = 6371000
+    height = earth_radius * z / (earth_radius - z)
+
+    if height <= elev:
+        continue
+
+    u, v = components(speed, direction)
+
+    rows.append([
+        height,
+        level * 100,
+        t + 273.15,
+        u,
+        v,
+    ])
+
+weather = pd.DataFrame(
+    rows,
+    columns=[
+        "height_m_asl",
+        "pressure_pa",
+        "temperature_k",
+        "wind_u_mps",
+        "wind_v_mps",
+    ],
+).sort_values("height_m_asl").reset_index(drop=True)
+
+if len(weather) < 3:
+    raise ValueError("Insufficient ECMWF atmospheric levels")
+
+
+try:
+    extra_response = requests.get(
+        url,
+        params={
+            "latitude": lat,
+            "longitude": long,
+            "elevation": elev,
+            "run": run,
+            "models": model,
+            "forecast_days": 10,
+            "timezone": "UTC",
+            "wind_speed_unit": "ms",
+            "hourly": (
+                "wind_speed_100m,"
+                "wind_direction_100m"
+            ),
+        },
+        timeout=60,
+    )
+
+    extra_response.raise_for_status()
+    extra = extra_response.json()["hourly"]
+
+    j = extra["time"].index(launch)
+
+    speed = extra["wind_speed_100m"][j]
+    direction = extra["wind_direction_100m"][j]
+
+    if not pd.isna(speed) and not pd.isna(direction):
+
+        height = elev + 100
+        u, v = components(speed, direction)
+
+        pressure = np.interp(
+            height,
+            weather["height_m_asl"],
+            weather["pressure_pa"],
+        )
+
+        temperature = np.interp(
+            height,
+            weather["height_m_asl"],
+            weather["temperature_k"],
+        )
+
+        weather.loc[len(weather)] = [
+            height,
+            pressure,
+            temperature,
+            u,
+            v,
+        ]
+
+        print("Added 100 m wind data")
+
+except (requests.RequestException, KeyError,
+        ValueError, TypeError) as e:
+    print(f"100 m wind unavailable: {e}")
+
+weather = weather.sort_values(
+    "height_m_asl"
+).reset_index(drop=True)
+
+weather_file = folder / (
+    f"{safe_title}_ECMWF_"
+    f"{run_dt:%Y%m%d_%HUTC}.csv"
+)
+
+weather.to_csv(weather_file, index=False)
+
+print("\nECMWF weather saved!")
+print(f"Location: {weather_file.resolve()}")
+print(f"Atmospheric levels: {len(weather)}")
+
+env.set_atmospheric_model(
+    type="custom_atmosphere",
+
+    pressure=weather[
+        ["height_m_asl", "pressure_pa"]
+    ].to_numpy(),
+
+    temperature=weather[
+        ["height_m_asl", "temperature_k"]
+    ].to_numpy(),
+
+    wind_u=weather[
+        ["height_m_asl", "wind_u_mps"]
+    ].to_numpy(),
+
+    wind_v=weather[
+        ["height_m_asl", "wind_v_mps"]
+    ].to_numpy(),
+)
+
+print("\nECMWF weather loaded into RocketPy!")
+print(f"Forecast run: {run} UTC")
+print(f"Launch time: {launch} UTC")
+print(f"Forecast lead: {lead_hours:.0f} hours")
+print(f"Atmospheric levels: {len(weather)}")
+
+
+import requests
 
 folder = Path(__file__).resolve().parent
 
@@ -449,8 +774,6 @@ CSTL = Flight(
 )
 
 # ---------------- SIMULATION RESULTS ----------------
-
-simulation_title = input("Enter simulation title: ")
 
 # Output file in the same folder as your Python script
 results_file = folder / "V11_Simulation_Results.txt"
